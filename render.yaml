@@ -1,4 +1,4 @@
-﻿services:
+services:
   # 1. Backend Web Service (FastAPI + PyTorch + Whisper)
   - type: web
     name: video-agent-backend
@@ -12,7 +12,7 @@
       - key: SARVAM_API_KEY
         sync: false
       - key: WHISPER_MODEL
-        value: base
+        value: tiny
       - key: SARVAM_STT_MODEL
         value: saaras:v2.5
       - key: REDIS_URL

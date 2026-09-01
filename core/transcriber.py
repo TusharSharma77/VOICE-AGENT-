@@ -20,7 +20,7 @@ load_dotenv()
 # We slice each chunk into 25s pieces (with a 5s safety margin) before sending.
 SARVAM_PIECE_SECONDS = 25
 
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "tiny")
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 SARVAM_STT_TRANSLATE_URL = "https://api.sarvam.ai/speech-to-text-translate"
 SARVAM_MODEL = os.getenv("SARVAM_STT_MODEL", "saaras:v2.5")
@@ -39,6 +39,7 @@ def load_model():
     return _model 
 
 
+import gc
 import torch
 
 
@@ -46,6 +47,7 @@ def transcribe_chunk_whisper(chunk_path: str) -> str:
     model = load_model()
     use_fp16 = torch.cuda.is_available()
     result = model.transcribe(chunk_path, task="transcribe", fp16=use_fp16)
+    gc.collect()
     return result["text"].strip()
 
 
