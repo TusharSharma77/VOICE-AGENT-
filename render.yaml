@@ -1,0 +1,32 @@
+﻿services:
+  # 1. Backend Web Service (FastAPI + PyTorch + Whisper)
+  - type: web
+    name: video-agent-backend
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /api/status
+    envVars:
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: SARVAM_API_KEY
+        sync: false
+      - key: WHISPER_MODEL
+        value: base
+      - key: SARVAM_STT_MODEL
+        value: saaras:v2.5
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: video-agent-redis
+          property: connectionString
+    disk:
+      name: vector-data
+      mountPath: /app/vector_db
+      sizeGB: 1
+
+  # 2. Managed Redis Service
+  - type: redis
+    name: video-agent-redis
+    ipAllowList: []
+    plan: free

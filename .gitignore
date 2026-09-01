@@ -1,0 +1,38 @@
+﻿# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+
+# Environment Variables & Secrets
+.env
+.env.local
+*.env
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Staging Downloads & Media
+downloades/*
+!downloades/.gitkeep
+
+# Chroma Vector Store & Outputs
+vector_db/
+outputs/*
+!outputs/.gitkeep
+
+# Node & Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.log
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

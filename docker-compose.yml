@@ -1,0 +1,49 @@
+﻿version: '3.8'
+
+services:
+  # 1. Redis Cache & Rate Limiting
+  redis:
+    image: redis:alpine
+    container_name: video-agent-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+  # 2. Python FastAPI Backend (with FFmpeg, PyTorch, Whisper, LangChain)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: video-agent-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - SARVAM_API_KEY=${SARVAM_API_KEY}
+      - WHISPER_MODEL=${WHISPER_MODEL:-small}
+      - SARVAM_STT_MODEL=${SARVAM_STT_MODEL:-saaras:v2.5}
+    depends_on:
+      - redis
+    volumes:
+      - ./downloades:/app/downloades
+      - ./outputs:/app/outputs
+      - ./vector_db:/app/vector_db
+    restart: unless-stopped
+
+  # 3. React Frontend (Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: video-agent-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  redis-data:
