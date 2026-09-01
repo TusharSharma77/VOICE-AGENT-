@@ -53,16 +53,18 @@ def build_chain(system_prompt: str):
     )
 
 
+import re
+
 def extract_action_items(transcript: str) -> str:
     if not transcript or not transcript.strip():
         return "No action items found (empty transcript)."
     chain = build_chain(
-        "You are an expert meeting analyst. From the meeting transcript, "
-        "extract all action items. For each provide:\n"
-        "- Task description\n"
-        "- Owner (who is responsible)\n"
-        "- Deadline (if mentioned, else write 'Not specified')\n\n"
-        "Format as a numbered list. If none found say 'No action items found.'"
+        "You are an expert analyst. From the transcript (meeting, talk, or discussion), "
+        "extract all actionable tasks and practical next steps.\n"
+        "- If a business/team meeting: extract task, owner, and deadline.\n"
+        "- If an educational/technical talk or presentation: extract actionable takeaways, "
+        "practical implementation steps, and recommended best practices for viewers.\n"
+        "Format as a numbered list with bold titles."
     )
     return _invoke_chain(chain, transcript)
 
@@ -71,9 +73,9 @@ def extract_key_decisions(transcript: str) -> str:
     if not transcript or not transcript.strip():
         return "No key decisions found (empty transcript)."
     chain = build_chain(
-        "You are an expert meeting analyst. From the meeting transcript, "
-        "extract all key decisions made. Format as a numbered list. "
-        "If none found say 'No key decisions found.'"
+        "You are an expert analyst. From the transcript (meeting, talk, or discussion), "
+        "extract all key decisions, core conclusions, and architectural principles established.\n"
+        "Format as a numbered list with bold titles."
     )
     return _invoke_chain(chain, transcript)
 
@@ -82,20 +84,70 @@ def extract_questions(transcript: str) -> str:
     if not transcript or not transcript.strip():
         return "No open questions found (empty transcript)."
     chain = build_chain(
-        "From the meeting transcript, extract all unresolved questions "
-        "or topics needing follow-up. Format as a numbered list. "
-        "If none found say 'No open questions found.'"
+        "You are an expert analyst. From the transcript (meeting, talk, or discussion), "
+        "extract all unresolved questions, pending follow-ups, or open challenges/considerations raised.\n"
+        "Format as a numbered list with bold titles."
     )
     return _invoke_chain(chain, transcript)
 
 
 def extract_all(transcript: str) -> dict:
-    """Extract action items, key decisions, and questions in one dictionary (Redis rate-limited)."""
-    return {
-        "action_items": extract_action_items(transcript),
-        "key_decisions": extract_key_decisions(transcript),
-        "questions": extract_questions(transcript),
-    }
+    """
+    Extract action items, key decisions, and questions using a unified prompt
+    to minimize API calls and prevent rate limiting while generating rich insights.
+    """
+    if not transcript or not transcript.strip():
+        return {
+            "action_items": "No action items found (empty transcript).",
+            "key_decisions": "No key decisions found (empty transcript).",
+            "questions": "No open questions found (empty transcript).",
+        }
+
+    chain = build_chain(
+        "You are an expert intelligence analyst. Analyze this transcript, which may be a meeting, "
+        "technical presentation, tutorial, or discussion.\n\n"
+        "Extract three comprehensive sections formatted in clean Markdown:\n\n"
+        "## ACTION ITEMS & IMPLEMENTATION STEPS\n"
+        "Extract actionable tasks and implementation steps. If a business meeting, identify task descriptions, "
+        "responsible owners, and deadlines. If an educational or technical talk, extract actionable takeaways, "
+        "practical steps, and recommended practices for practitioners.\n\n"
+        "## KEY DECISIONS & CORE PRINCIPLES\n"
+        "Extract key decisions, conclusions, agreements, or architectural principles established.\n\n"
+        "## OPEN QUESTIONS & FUTURE CHALLENGES\n"
+        "Extract unresolved questions, pending follow-ups, or open challenges raised.\n\n"
+        "Format each section as a clean numbered list with bold titles."
+    )
+
+    try:
+        raw_output = _invoke_chain(chain, transcript)
+        action_match = re.search(r'##\s*\**\s*ACTION ITEMS[^\n]*\n(.*?)(?=\n##|\Z)', raw_output, flags=re.IGNORECASE | re.DOTALL)
+        decision_match = re.search(r'##\s*\**\s*KEY DECISIONS[^\n]*\n(.*?)(?=\n##|\Z)', raw_output, flags=re.IGNORECASE | re.DOTALL)
+        question_match = re.search(r'##\s*\**\s*OPEN QUESTIONS[^\n]*\n(.*?)(?=\n##|\Z)', raw_output, flags=re.IGNORECASE | re.DOTALL)
+
+        actions = action_match.group(1).strip() if action_match else ""
+        decisions = decision_match.group(1).strip() if decision_match else ""
+        questions = question_match.group(1).strip() if question_match else ""
+
+        # Fallback if markdown headers were not used
+        if not actions and not decisions and not questions:
+            return {
+                "action_items": extract_action_items(transcript),
+                "key_decisions": extract_key_decisions(transcript),
+                "questions": extract_questions(transcript),
+            }
+
+        return {
+            "action_items": actions or "No action items found.",
+            "key_decisions": decisions or "No key decisions found.",
+            "questions": questions or "No open questions found.",
+        }
+    except Exception:
+        # Fallback to individual calls if unified parse fails
+        return {
+            "action_items": extract_action_items(transcript),
+            "key_decisions": extract_key_decisions(transcript),
+            "questions": extract_questions(transcript),
+        }
 
 
 if __name__ == "__main__":
