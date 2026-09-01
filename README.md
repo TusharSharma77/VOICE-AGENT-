@@ -1,4 +1,6 @@
 # AI Meeting Assistant & Video Agent
+<img width="1900" height="900" alt="image" src="https://github.com/user-attachments/assets/37d5f432-0056-4129-a97c-74ce1660bbda" />
+
 
 An end-to-end multi-modal intelligence platform that ingests YouTube videos or local audio/video files, transcribes speech with local Whisper or Sarvam AI, synthesizes executive notes with Mistral AI using Map-Reduce, indexes content into ChromaDB, and enables interactive question-answering (RAG) through a Redis-protected API and a minimalist React dashboard.
 
